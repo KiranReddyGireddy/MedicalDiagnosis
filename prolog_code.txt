@@ -1,0 +1,45 @@
+import streamlit as st
+from pyswip import Prolog
+
+
+prolog = Prolog()
+prolog.consult("diagnosis.pl")
+
+def get_diagnosis(symptoms):
+
+    query = f"identify_disease(Disease, [{', '.join(symptoms)}])"
+    results = list(prolog.query(query))
+
+    diagnoses = []
+    for result in results:
+        disease = result['Disease']
+        
+        med_query = f"suggest_medicine({disease}, Medicines)"
+        medicine_results = list(prolog.query(med_query))
+        medicines = [med for res in medicine_results for med in res['Medicines']]
+
+        diagnoses.append({
+            'disease': disease,
+            'medicines': medicines
+        })
+
+    return diagnoses
+
+
+st.title("Medical Diagnosis System")
+
+st.write("Enter your symptoms (comma-separated):")
+symptoms_input = st.text_input("Symptoms")
+
+if st.button("Diagnose"):
+    symptoms = [symptom.strip().lower() for symptom in symptoms_input.split(",")]
+    if symptoms:
+        diagnoses = get_diagnosis(symptoms)
+        if diagnoses:
+            for diagnosis in diagnoses:
+                st.write(f"**Disease:** {diagnosis['disease'].capitalize()}")
+                st.write(f"**Medicines:** {', '.join(diagnosis['medicines'])}")
+        else:
+            st.write("No diagnosis found for the given symptoms.")
+    else:
+        st.write("Please enter some symptoms.")
